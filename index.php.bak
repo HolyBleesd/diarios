@@ -1,0 +1,191 @@
+<?php
+require_once 'config.php';
+
+// Reindirizza se l'utente è già loggato
+if (isLoggedIn()) {
+    redirect('dashboard.php');
+}
+
+$error = '';
+
+// Gestione del login
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = clean_input($_POST['username']);
+    $password = $_POST['password'];
+    
+    // Verifica delle credenziali
+    $sql = "SELECT id, username, password, is_admin FROM users WHERE username = '$username'";
+    $result = $conn->query($sql);
+    
+    if ($result->num_rows == 1) {
+        $user = $result->fetch_assoc();
+        
+        if (password_verify($password, $user['password'])) {
+            // Login riuscito
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['is_admin'] = $user['is_admin'];
+            
+            redirect('dashboard.php');
+        } else {
+            $error = "Password non valida";
+        }
+    } else {
+        $error = "Utente non trovato";
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIARIO - Sistema di Accesso Sicuro</title>
+    <link rel="stylesheet" href="fbi-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            position: relative;
+        }
+        
+        .login-form::before {
+            content: 'RESTRICTED ACCESS';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 5px;
+            background: var(--secondary-color);
+            color: var(--text-primary);
+            text-align: center;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+        
+        .login-form::after {
+            content: '';
+            position: absolute;
+            top: 30px;
+            right: 20px;
+            width: 80px;
+            height: 80px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none" stroke="%23003366" stroke-width="5"/><path d="M30,50 L70,50 M50,30 L50,70" stroke="%23003366" stroke-width="5"/></svg>');
+            background-size: contain;
+            opacity: 0.2;
+            pointer-events: none;
+        }
+        
+        .classified-stamp {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 5rem;
+            color: rgba(153, 0, 0, 0.1);
+            font-weight: bold;
+            pointer-events: none;
+            border: 10px solid rgba(153, 0, 0, 0.1);
+            padding: 10px 20px;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            z-index: 0;
+        }
+        
+        .login-form {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .system-info {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-family: 'Roboto Mono', monospace;
+            opacity: 0.5;
+        }
+        
+        .system-info span {
+            display: block;
+            margin-bottom: 2px;
+        }
+        
+        .blinking {
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="classified-stamp">Classified</div>
+    
+    <div class="login-form">
+        <h1>DIARIO</h1>
+        <h2>Sistema di Gestione Sicuro</h2>
+        
+        <?php if ($error): ?>
+            <div class="error-message"><?php echo $error; ?></div>
+        <?php endif; ?>
+        
+        <form method="post" action="">
+            <div class="form-group">
+                <label for="username"><i class="fas fa-user-shield"></i> Codice Agente</label>
+                <input type="text" id="username" name="username" placeholder="Inserisci il tuo codice agente" required autofocus>
+            </div>
+            
+            <div class="form-group">
+                <label for="password"><i class="fas fa-lock"></i> Password di Accesso</label>
+                <input type="password" id="password" name="password" placeholder="Inserisci la tua password" required>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit"><i class="fas fa-sign-in-alt"></i> ACCEDI AL SISTEMA</button>
+            </div>
+        </form>
+        
+        <div class="init-link">
+            <a href="init.php"><i class="fas fa-database"></i> Inizializza Database</a>
+        </div>
+    </div>
+    
+    <div class="system-info">
+        <span>SISTEMA: <span class="blinking">●</span> ONLINE</span>
+        <span>VERSIONE: 2.4.7</span>
+        <span>ACCESSO: LIMITATO</span>
+        <span>STATO: SICURO</span>
+    </div>
+    
+    <script>
+        // Effetto di digitazione per il titolo
+        document.addEventListener('DOMContentLoaded', function() {
+            const title = document.querySelector('.login-form h1');
+            const originalText = title.textContent;
+            title.textContent = '';
+            
+            let i = 0;
+            const typeWriter = () => {
+                if (i < originalText.length) {
+                    title.textContent += originalText.charAt(i);
+                    i++;
+                    setTimeout(typeWriter, 100);
+                }
+            };
+            
+            setTimeout(typeWriter, 500);
+        });
+    </script>
+</body>
+</html>
